@@ -8,8 +8,8 @@ on:
       - "goa_scheduler.py"
       - ".github/workflows/goa-tracker.yml"
   schedule:
-    # Check every 10 minutes so price drops are detected quickly.
-    - cron: "*/10 * * * *"
+    # Check every 5 minutes for fast price-drop detection.
+    - cron: "*/5 * * * *"
       timezone: "Asia/Kolkata"
 
 permissions:
