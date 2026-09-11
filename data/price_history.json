@@ -2,5 +2,9 @@
   {
     "checked_at": "2026-09-11T04:46:22.499216+00:00",
     "status": "target room not found"
+  },
+  {
+    "checked_at": "2026-09-11T04:56:21.430639+00:00",
+    "status": "half-board rate not found near target room"
   }
 ]
