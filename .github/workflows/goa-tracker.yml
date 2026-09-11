@@ -5,10 +5,10 @@ on:
   push:
     paths:
       - "tracker.py"
+      - "goa_scheduler.py"
       - ".github/workflows/goa-tracker.yml"
   schedule:
-    # Frequent checks allow a price drop to be detected quickly.
-    # GitHub supports scheduled workflows as often as every 5 minutes.
+    # Check every 10 minutes so price drops are detected quickly.
     - cron: "*/10 * * * *"
       timezone: "Asia/Kolkata"
 
@@ -42,8 +42,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: python telegram_test.py
 
-      - name: Check Goa rate
-        run: python tracker.py
+      - name: Check Goa rate and send scheduled alerts
+        run: python goa_scheduler.py
 
       - name: Commit price history
         uses: stefanzweifel/git-auto-commit-action@v7
