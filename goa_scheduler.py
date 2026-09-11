@@ -8,7 +8,8 @@ import requests
 from tracker import BASELINE_TOTAL, CHECKIN, CHECKOUT, CURRENCY, GUESTS, HISTORY_FILE, HOTEL, RATE_LABEL, ROOM_LABEL, fetch_live_rate, telegram_chat_id
 
 IST = ZoneInfo("Asia/Kolkata")
-REGULAR_TIMES = [(9, 0), (11, 24), (13, 48), (16, 12), (18, 36), (21, 0)]
+# Six rounded daily updates: 9 AM, 11 AM, 1 PM, 3 PM, 6 PM, 9 PM IST.
+REGULAR_TIMES = [(9, 0), (11, 0), (13, 0), (15, 0), (18, 0), (21, 0)]
 
 
 def send_telegram(text):
@@ -81,7 +82,7 @@ def main():
     history.append(record)
     HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
 
-    # A verified price drop triggers five Telegram messages back-to-back.
+    # A verified price drop triggers five Telegram messages back-to-back immediately.
     if change < 0:
         alert = (
             "🚨 IBIS GOA PRICE DROP 🚨\n\n"
@@ -94,7 +95,7 @@ def main():
         for _ in range(5):
             send_telegram(alert)
 
-    # Six daily current-price messages, from 9 AM through 9 PM.
+    # One regular current-price message in each daily slot.
     if slot:
         already_sent = any(
             isinstance(x, dict) and x.get("regular_slot") == slot and x.get("regular_sent")
