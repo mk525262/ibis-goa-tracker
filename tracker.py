@@ -22,10 +22,27 @@ BOOKING_URL = (
 )
 
 
+def telegram_chat_id(token):
+    configured = os.getenv("TELEGRAM_CHAT_ID")
+    if configured:
+        return configured
+    r = requests.get(f"https://api.telegram.org/bot{token}/getUpdates", timeout=30)
+    r.raise_for_status()
+    updates = r.json().get("result", [])
+    for update in reversed(updates):
+        message = update.get("message") or update.get("channel_post")
+        if message and message.get("chat", {}).get("id") is not None:
+            return str(message["chat"]["id"])
+    raise RuntimeError("No Telegram chat found. Open @Goa_IBIS_bot and send /start first.")
+
+
 def send_telegram(text):
     token = os.environ["TELEGRAM_BOT_TOKEN"]
-    chat_id = os.environ["TELEGRAM_CHAT_ID"]
-    r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": chat_id, "text": text}, timeout=30)
+    chat_id = telegram_chat_id(token)
+    r = requests.post(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        json={"chat_id": chat_id, "text": text}, timeout=30,
+    )
     r.raise_for_status()
 
 
