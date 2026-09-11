@@ -84,9 +84,6 @@ def extract_target_from_text(text):
 
     for room_pos, marker in positions:
         window = ntext[max(0, room_pos - 2500): room_pos + 12000]
-        # The booking engine can call the same room "with Balcony" even though
-        # the property page describes its view as pool-side. Require a pool-view
-        # signal somewhere in the room/rate card to avoid matching another Twin.
         has_pool = any(x in window for x in ("pool view", "pool-side", "pool side", "poolview"))
         if not has_pool:
             continue
@@ -109,7 +106,6 @@ def extract_target_from_text(text):
 
         amounts = [x for x in parse_inr(window) if 1000 <= x <= 200000]
         if amounts:
-            # Stay totals are normally the largest INR value in this card.
             return max(amounts), "ok"
 
     return None, "target room/rate not found"
@@ -139,13 +135,10 @@ def fetch_live_rate():
             page.goto(BOOKING_URL, wait_until="domcontentloaded", timeout=90000)
             page.wait_for_timeout(18000)
 
-            # Give lazy-loaded room/rate cards and API calls time to settle.
             for _ in range(8):
                 page.mouse.wheel(0, 1600)
                 page.wait_for_timeout(1200)
 
-            # First inspect the rendered page, then every same-page frame and
-            # finally captured JSON/text responses from the booking engine.
             texts = []
             try:
                 texts.append(page.locator("body").inner_text(timeout=30000))
@@ -188,24 +181,25 @@ def main():
 
     prices = [x["total"] for x in history if isinstance(x, dict) and isinstance(x.get("total"), (int, float))]
     previous = prices[-1] if prices else BASELINE_TOTAL
+    change = total - previous
+    direction = "↓" if change < 0 else "↑" if change > 0 else "="
+
     history.append({"checked_at": checked, "status": "ok", "total": total, "currency": CURRENCY})
     HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
 
-    if total != previous:
-        change = total - previous
-        direction = "↓" if change < 0 else "↑"
-        send_telegram(
-            "🏨 IBIS GOA PRICE ALERT\n\n"
-            f"{HOTEL}\n"
-            f"Stay: {CHECKIN} → {CHECKOUT}\n"
-            f"Guests: {GUESTS}\n"
-            f"Room: {ROOM_LABEL}\n"
-            f"Rate: {RATE_LABEL}\n\n"
-            f"Current total: ₹{total:,.2f}\n"
-            f"Change: {direction} ₹{abs(change):,.2f}\n"
-            f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\n"
-            "Source: ALL Accor official booking page"
-        )
+    # Send the current price on every successful check, not only when it changes.
+    send_telegram(
+        "🏨 IBIS GOA CURRENT PRICE\n\n"
+        f"{HOTEL}\n"
+        f"Stay: {CHECKIN} → {CHECKOUT}\n"
+        f"Guests: {GUESTS}\n"
+        f"Room: {ROOM_LABEL}\n"
+        f"Rate: {RATE_LABEL}\n\n"
+        f"💰 Current price: ₹{total:,.2f}\n"
+        f"Change: {direction} ₹{abs(change):,.2f}\n"
+        f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\n"
+        "Source: ALL Accor official booking page"
+    )
 
 
 if __name__ == "__main__":
