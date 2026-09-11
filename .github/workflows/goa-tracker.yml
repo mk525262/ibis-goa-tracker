@@ -31,6 +31,10 @@ jobs:
       - name: Install Chromium
         run: python -m playwright install --with-deps chromium
 
+      - name: Test Telegram on manual run
+        if: github.event_name == 'workflow_dispatch'
+        run: python telegram_test.py
+
       - name: Check Goa rate
         run: python tracker.py
 
