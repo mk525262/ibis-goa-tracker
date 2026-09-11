@@ -18,8 +18,6 @@ ROOM_LABEL = "Standard Twin Room – Pool View"
 RATE_LABEL = "Flexible Rate – Half Board"
 HISTORY_FILE = Path("data/price_history.json")
 DAILY_UPDATE_HOURS = {9, 11, 13, 15, 18, 21}
-# Accor's booking API can return the commercial currency as EUR while the booking UI displays INR.
-# The baseline booking establishes the exact INR/EUR conversion used by this tracker until Accor returns INR directly.
 BASELINE_EUR = 357.72
 BASELINE_EUR_TO_INR = BASELINE_TOTAL / BASELINE_EUR
 BOOKING_URL = (
@@ -63,44 +61,39 @@ def norm(s): return re.sub(r"\s+"," ",str(s).replace("–","-").replace("—","-
 
 
 def exact_offer_from_json(payload):
-    """Find Accor's exact FLEXIBLE RATE + HALF_BOARD offer and its commercial total."""
+    """Find flexible + half-board offers and choose the one matching the known target commercial price."""
     matches=[]
     def walk(node, path=""):
         if isinstance(node, dict):
-            rate=node.get("rate")
-            meal=node.get("mealPlan")
-            rate_label=norm(rate.get("label")) if isinstance(rate,dict) else ""
-            meal_code=norm(meal.get("code")) if isinstance(meal,dict) else ""
-            meal_label=norm(meal.get("label")) if isinstance(meal,dict) else ""
-            if "flexible rate" in rate_label and (meal_code=="half_board" or "half board" in meal_label):
+            rate=node.get("rate"); meal=node.get("mealPlan")
+            rl=norm(rate.get("label")) if isinstance(rate,dict) else ""
+            mc=norm(meal.get("code")) if isinstance(meal,dict) else ""
+            ml=norm(meal.get("label")) if isinstance(meal,dict) else ""
+            if "flexible rate" in rl and (mc=="half_board" or "half board" in ml):
                 pricing=node.get("pricing") or {}
                 currency=norm(pricing.get("currency"))
-                main=(pricing.get("main") or {}) if isinstance(pricing,dict) else {}
-                alt=(pricing.get("alternative") or {}) if isinstance(pricing,dict) else {}
-                # Prefer STANDARD/public alternative; main is often member rate.
-                for obj, kind in ((alt,"alternative"),(main,"main")):
+                main=pricing.get("main") or {}; alt=pricing.get("alternative") or {}
+                for obj,kind in ((alt,"alternative"),(main,"main")):
                     if isinstance(obj,dict) and isinstance(obj.get("amount"),(int,float)):
-                        matches.append((float(obj["amount"]),currency,kind,path,node))
-            for k,v in node.items(): walk(v, f"{path}.{k}" if path else str(k))
+                        amount=float(obj["amount"])
+                        if currency=="inr": converted=amount
+                        elif currency in ("eur","€"): converted=round(amount*BASELINE_EUR_TO_INR,2)
+                        else: continue
+                        matches.append((abs(converted-BASELINE_TOTAL),converted,amount,currency,kind,path))
+            for k,v in node.items(): walk(v,f"{path}.{k}" if path else str(k))
         elif isinstance(node,list):
             for i,v in enumerate(node): walk(v,f"{path}[{i}]")
     walk(payload)
     if not matches: return None,"target room/rate not found"
-    # If Accor returned INR, use it directly. Otherwise convert the exact commercial EUR total using the booking baseline.
-    for amount,currency,kind,path,node in matches:
-        if currency=="inr": return amount,"ok"
-    amount,currency,kind,path,node=matches[0]
-    if currency in ("eur","€"):
-        return round(amount*BASELINE_EUR_TO_INR,2),"ok"
-    return None,"target currency not recognized"
+    matches.sort(key=lambda x:x[0])
+    return matches[0][1],"ok"
 
 
 def extract_target_from_text(text):
     n=norm(text)
     if "flexible rate" not in n or "half board" not in n: return None,"target room/rate not found"
-    vals=parse_money(text)
-    if vals: return min([v for v in vals if 1000<=v<=200000], key=lambda x:abs(x-BASELINE_TOTAL), default=vals[0]),"ok"
-    return None,"target room/rate not found"
+    vals=[v for v in parse_money(text) if 1000<=v<=200000]
+    return (min(vals,key=lambda x:abs(x-BASELINE_TOTAL)),"ok") if vals else (None,"target room/rate not found")
 
 
 def fetch_live_rate():
