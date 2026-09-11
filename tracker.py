@@ -17,7 +17,6 @@ CURRENCY = "INR"
 ROOM_LABEL = "Standard Twin Room – Pool View"
 RATE_LABEL = "Flexible Rate – Half Board"
 HISTORY_FILE = Path("data/price_history.json")
-# Rounded daily Telegram updates: 9 AM, 11 AM, 1 PM, 3 PM, 6 PM, 9 PM IST.
 DAILY_UPDATE_HOURS = {9, 11, 13, 15, 18, 21}
 BOOKING_URL = (
     "https://all.accor.com/booking/en/accor/hotel/8562"
@@ -51,7 +50,6 @@ def send_telegram(text):
 
 
 def send_drop_alert(text):
-    # Five immediate messages as requested when a genuine price drop is detected.
     for i in range(5):
         send_telegram(text)
         if i < 4:
@@ -81,7 +79,6 @@ def extract_target_from_text(text):
         "standard twin room with balcony",
         "standard twin room",
     ]
-
     positions = []
     for marker in room_markers:
         start = 0
@@ -96,13 +93,8 @@ def extract_target_from_text(text):
     for room_pos, marker in positions:
         window = ntext[max(0, room_pos - 2500): room_pos + 12000]
         has_pool = any(x in window for x in ("pool view", "pool-side", "pool side", "poolview"))
-        if not has_pool:
+        if not has_pool or "half board" not in window or "flexible rate" not in window:
             continue
-        if "half board" not in window:
-            continue
-        if "flexible rate" not in window:
-            continue
-
         total_patterns = [
             r"total[^₹0-9]{0,100}(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
             r"(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)[^\n]{0,80}total",
@@ -114,17 +106,13 @@ def extract_target_from_text(text):
                 value = float(raw.replace(",", ""))
                 if 1000 <= value <= 200000:
                     return value, "ok"
-
         amounts = [x for x in parse_inr(window) if 1000 <= x <= 200000]
         if amounts:
             return max(amounts), "ok"
-
     return None, "target room/rate not found"
 
 
 def fetch_live_rate():
-    """Read Accor's booking engine, including its dynamically loaded API data.
-    Fail closed unless the exact target room/rate has a pool-view signal."""
     captured = []
 
     def capture_response(response):
@@ -145,7 +133,6 @@ def fetch_live_rate():
         try:
             page.goto(BOOKING_URL, wait_until="domcontentloaded", timeout=90000)
             page.wait_for_timeout(18000)
-
             for _ in range(8):
                 page.mouse.wheel(0, 1600)
                 page.wait_for_timeout(1200)
@@ -162,12 +149,10 @@ def fetch_live_rate():
                         texts.append(value)
                 except Exception:
                     pass
-
             for text in texts + captured:
                 total, status = extract_target_from_text(text)
                 if total is not None:
                     return total, status
-
             return None, "target room/rate not found"
         finally:
             context.close()
@@ -184,8 +169,7 @@ def main():
     now_ist = datetime.now().astimezone()
     checked = datetime.now(timezone.utc).isoformat()
     total, status = fetch_live_rate()
-    print(f"checked_at={checked} status={status} total={total}
-")
+    print(f"checked_at={checked} status={status} total={total}")
 
     if total is None:
         history.append({"checked_at": checked, "status": status})
@@ -196,10 +180,8 @@ def main():
     previous = prices[-1] if prices else BASELINE_TOTAL
     change = total - previous
     direction = "↓" if change < 0 else "↑" if change > 0 else "="
-
     history.append({"checked_at": checked, "status": "ok", "total": total, "currency": CURRENCY})
 
-    # A genuine drop triggers five back-to-back Telegram alerts immediately.
     if total < previous:
         drop_text = (
             "🚨 IBIS GOA PRICE DROP\n\n"
@@ -215,8 +197,6 @@ def main():
         )
         send_drop_alert(drop_text)
 
-    # Send one regular current-price update only at the six rounded IST hours.
-    # Deduplicate the same hour in case GitHub queues two runs around the slot.
     slot_key = now_ist.strftime("%Y-%m-%d-%H")
     already_sent = any(
         isinstance(x, dict) and x.get("notification") == "daily" and x.get("slot") == slot_key
