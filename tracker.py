@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,6 +17,8 @@ CURRENCY = "INR"
 ROOM_LABEL = "Standard Twin Room – Pool View"
 RATE_LABEL = "Flexible Rate – Half Board"
 HISTORY_FILE = Path("data/price_history.json")
+# Rounded daily Telegram updates: 9 AM, 11 AM, 1 PM, 3 PM, 6 PM, 9 PM IST.
+DAILY_UPDATE_HOURS = {9, 11, 13, 15, 18, 21}
 BOOKING_URL = (
     "https://all.accor.com/booking/en/accor/hotel/8562"
     f"?dateIn={CHECKIN}&dateOut={CHECKOUT}&nights=4&compositions=2"
@@ -45,6 +48,14 @@ def send_telegram(text):
         json={"chat_id": chat_id, "text": text}, timeout=30,
     )
     r.raise_for_status()
+
+
+def send_drop_alert(text):
+    # Five immediate messages as requested when a genuine price drop is detected.
+    for i in range(5):
+        send_telegram(text)
+        if i < 4:
+            time.sleep(0.8)
 
 
 def parse_inr(text):
@@ -170,9 +181,11 @@ def main():
     except Exception:
         history = []
 
+    now_ist = datetime.now().astimezone()
     checked = datetime.now(timezone.utc).isoformat()
     total, status = fetch_live_rate()
-    print(f"checked_at={checked} status={status} total={total}")
+    print(f"checked_at={checked} status={status} total={total}
+")
 
     if total is None:
         history.append({"checked_at": checked, "status": status})
@@ -185,21 +198,46 @@ def main():
     direction = "↓" if change < 0 else "↑" if change > 0 else "="
 
     history.append({"checked_at": checked, "status": "ok", "total": total, "currency": CURRENCY})
-    HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
 
-    # Send the current price on every successful check, not only when it changes.
-    send_telegram(
-        "🏨 IBIS GOA CURRENT PRICE\n\n"
-        f"{HOTEL}\n"
-        f"Stay: {CHECKIN} → {CHECKOUT}\n"
-        f"Guests: {GUESTS}\n"
-        f"Room: {ROOM_LABEL}\n"
-        f"Rate: {RATE_LABEL}\n\n"
-        f"💰 Current price: ₹{total:,.2f}\n"
-        f"Change: {direction} ₹{abs(change):,.2f}\n"
-        f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\n"
-        "Source: ALL Accor official booking page"
+    # A genuine drop triggers five back-to-back Telegram alerts immediately.
+    if total < previous:
+        drop_text = (
+            "🚨 IBIS GOA PRICE DROP\n\n"
+            f"{HOTEL}\n"
+            f"Stay: {CHECKIN} → {CHECKOUT}\n"
+            f"Guests: {GUESTS}\n"
+            f"Room: {ROOM_LABEL}\n"
+            f"Rate: {RATE_LABEL}\n\n"
+            f"💰 NEW PRICE: ₹{total:,.2f}\n"
+            f"📉 DROPPED BY: ₹{abs(change):,.2f}\n"
+            f"Previous: ₹{previous:,.2f}\n\n"
+            "Source: ALL Accor official booking page"
+        )
+        send_drop_alert(drop_text)
+
+    # Send one regular current-price update only at the six rounded IST hours.
+    # Deduplicate the same hour in case GitHub queues two runs around the slot.
+    slot_key = now_ist.strftime("%Y-%m-%d-%H")
+    already_sent = any(
+        isinstance(x, dict) and x.get("notification") == "daily" and x.get("slot") == slot_key
+        for x in history[-30:]
     )
+    if now_ist.hour in DAILY_UPDATE_HOURS and now_ist.minute < 10 and not already_sent:
+        send_telegram(
+            "🏨 IBIS GOA CURRENT PRICE\n\n"
+            f"{HOTEL}\n"
+            f"Stay: {CHECKIN} → {CHECKOUT}\n"
+            f"Guests: {GUESTS}\n"
+            f"Room: {ROOM_LABEL}\n"
+            f"Rate: {RATE_LABEL}\n\n"
+            f"💰 Current price: ₹{total:,.2f}\n"
+            f"Change: {direction} ₹{abs(change):,.2f}\n"
+            f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\n"
+            "Source: ALL Accor official booking page"
+        )
+        history.append({"notification": "daily", "slot": slot_key, "sent_at": checked})
+
+    HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
