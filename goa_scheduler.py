@@ -8,6 +8,8 @@ import requests
 from tracker import BASELINE_TOTAL, CHECKIN, CHECKOUT, CURRENCY, GUESTS, HISTORY_FILE, HOTEL, RATE_LABEL, ROOM_LABEL, fetch_live_rate, telegram_chat_id
 
 IST = ZoneInfo("Asia/Kolkata")
+# Six rounded daily updates: 9 AM, 11 AM, 1 PM, 3 PM, 6 PM, 9 PM IST.
+REGULAR_TIMES = [(9, 0), (11, 0), (13, 0), (15, 0), (18, 0), (21, 0)]
 
 
 def send_telegram(text):
@@ -20,6 +22,15 @@ def send_telegram(text):
         timeout=30,
     )
     r.raise_for_status()
+
+
+def regular_slot_key(now):
+    now_minutes = now.hour * 60 + now.minute
+    for hour, minute in REGULAR_TIMES:
+        slot_minutes = hour * 60 + minute
+        if slot_minutes <= now_minutes < slot_minutes + 10:
+            return f"{now.date().isoformat()}-{hour:02d}{minute:02d}"
+    return None
 
 
 def current_message(total, change):
@@ -59,12 +70,14 @@ def main():
     prices = [x["total"] for x in history if isinstance(x, dict) and isinstance(x.get("total"), (int, float))]
     previous = prices[-1] if prices else BASELINE_TOTAL
     change = total - previous
+    slot = regular_slot_key(now_ist)
 
     record = {
         "checked_at": checked,
         "status": "ok",
         "total": total,
         "currency": CURRENCY,
+        "regular_slot": slot,
         "regular_sent": False,
     }
     history.append(record)
@@ -83,11 +96,16 @@ def main():
         for _ in range(5):
             send_telegram(alert)
 
-    # The workflow runs every 5 minutes, so send one regular current-price
-    # message on every successful price check.
-    send_telegram(current_message(total, change))
-    record["regular_sent"] = True
-    HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
+    # One regular current-price message in each daily slot.
+    if slot:
+        already_sent = any(
+            isinstance(x, dict) and x.get("regular_slot") == slot and x.get("regular_sent")
+            for x in history[:-1]
+        )
+        if not already_sent:
+            send_telegram(current_message(total, change))
+            record["regular_sent"] = True
+            HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
