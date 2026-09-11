@@ -91,14 +91,16 @@ def extract_target_from_text(text):
     positions.sort()
 
     for room_pos, marker in positions:
-        window = ntext[max(0, room_pos - 2500): room_pos + 12000]
+        window = ntext[max(0, room_pos - 5000): room_pos + 30000]
         has_pool = any(x in window for x in ("pool view", "pool-side", "pool side", "poolview"))
-        if not has_pool or "half board" not in window or "flexible rate" not in window:
+        has_half_board = "half board" in window or "half-board" in window or "halfboard" in window
+        has_flexible = "flexible rate" in window or "flexible" in window
+        if not has_pool or not has_half_board or not has_flexible:
             continue
         total_patterns = [
-            r"total[^₹0-9]{0,100}(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
-            r"(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)[^\n]{0,80}total",
-            r"stay[^₹0-9]{0,100}(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
+            r"(?:total|grand total|stay total)[^₹0-9]{0,150}(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
+            r"(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)[^\n]{0,120}(?:total|grand total)",
+            r"(?:stay|4 nights?)[^₹0-9]{0,150}(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
         ]
         for pattern in total_patterns:
             matches = re.findall(pattern, window, re.I)
@@ -112,16 +114,87 @@ def extract_target_from_text(text):
     return None, "target room/rate not found"
 
 
+def _flatten_strings_and_numbers(value):
+    strings = []
+    numbers = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            strings.append(str(key))
+            s, n = _flatten_strings_and_numbers(child)
+            strings.extend(s)
+            numbers.extend(n)
+    elif isinstance(value, list):
+        for child in value:
+            s, n = _flatten_strings_and_numbers(child)
+            strings.extend(s)
+            numbers.extend(n)
+    elif isinstance(value, str):
+        strings.append(value)
+        numbers.extend(parse_inr(value))
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        numbers.append(float(value))
+    return strings, numbers
+
+
+def extract_target_from_json(payload):
+    """Find the target room/rate in Accor's JSON even when labels and price fields are separate."""
+    candidates = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            strings, numbers = _flatten_strings_and_numbers(node)
+            blob = normalized(" ".join(strings))
+            has_twin = "standard twin" in blob or "twin room" in blob
+            has_pool = "pool view" in blob or "pool-side" in blob or "pool side" in blob or "poolview" in blob
+            has_half = "half board" in blob or "half-board" in blob or "halfboard" in blob
+            has_flexible = "flexible rate" in blob or ("flexible" in blob and "rate" in blob)
+            if has_twin and has_pool and has_half and has_flexible:
+                plausible = [x for x in numbers if 1000 <= x <= 200000]
+                if plausible:
+                    # Prefer fields whose key explicitly indicates a stay total.
+                    for key, value in node.items():
+                        k = normalized(str(key))
+                        if any(term in k for term in ("total", "grandtotal", "totalamount", "stayamount")):
+                            try:
+                                v = float(value)
+                                if 1000 <= v <= 200000:
+                                    candidates.append((0, v))
+                            except (TypeError, ValueError):
+                                pass
+                    candidates.extend((1, x) for x in plausible)
+            for child in node.values():
+                walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                walk(child)
+
+    walk(payload)
+    if candidates:
+        candidates.sort(key=lambda x: (x[0], -x[1]))
+        return candidates[0][1], "ok"
+    return None, "target room/rate not found"
+
+
 def fetch_live_rate():
-    captured = []
+    captured_json = []
+    captured_text = []
+    response_urls = []
 
     def capture_response(response):
         try:
             ctype = (response.headers.get("content-type") or "").lower()
-            if "json" in ctype or "text" in ctype:
+            url = response.url
+            if "json" in ctype:
                 body = response.text()
-                if any(k in body.lower() for k in ("half board", "standard twin", "pool view", "flexible rate")):
-                    captured.append(body)
+                captured_json.append(body)
+                if any(k in body.lower() for k in ("half board", "standard twin", "pool view", "flexible")):
+                    response_urls.append(url)
+            elif "text" in ctype and any(k in url.lower() for k in ("booking", "availability", "rate", "room")):
+                body = response.text()
+                if len(body) < 5_000_000:
+                    captured_text.append(body)
+                    if any(k in body.lower() for k in ("half board", "standard twin", "pool view", "flexible")):
+                        response_urls.append(url)
         except Exception:
             pass
 
@@ -132,10 +205,11 @@ def fetch_live_rate():
         page.on("response", capture_response)
         try:
             page.goto(BOOKING_URL, wait_until="domcontentloaded", timeout=90000)
-            page.wait_for_timeout(18000)
-            for _ in range(8):
-                page.mouse.wheel(0, 1600)
-                page.wait_for_timeout(1200)
+            page.wait_for_timeout(22000)
+
+            # Give the Accor booking application time to finish its XHR calls.
+            for _ in range(10):
+                page.wait_for_timeout(1000)
 
             texts = []
             try:
@@ -149,10 +223,26 @@ def fetch_live_rate():
                         texts.append(value)
                 except Exception:
                     pass
-            for text in texts + captured:
+
+            for body in captured_json:
+                try:
+                    payload = json.loads(body)
+                    total, status = extract_target_from_json(payload)
+                    if total is not None:
+                        return total, status
+                except Exception:
+                    pass
+
+            for text in texts + captured_text + captured_json:
                 total, status = extract_target_from_text(text)
                 if total is not None:
                     return total, status
+
+            # Useful diagnostic only; never exposes cookies/tokens.
+            print(f"diagnostic_responses_with_target_terms={len(response_urls)}")
+            for url in response_urls[:20]:
+                print(f"diagnostic_response_url={url[:500]}")
+            print(f"diagnostic_json_responses={len(captured_json)} diagnostic_text_responses={len(captured_text)}")
             return None, "target room/rate not found"
         finally:
             context.close()
