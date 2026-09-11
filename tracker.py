@@ -16,9 +16,13 @@ CURRENCY = "INR"
 ROOM_LABEL = "Standard Twin Room – Pool View"
 RATE_LABEL = "Flexible Rate – Half Board"
 HISTORY_FILE = Path("data/price_history.json")
+# Accor's public hotel page uses hotel id 8562. Keep both check-in and
+# check-out explicit so the booking engine cannot fall back to another stay.
 BOOKING_URL = (
-    "https://all.accor.com/booking/en/accor/hotel/C8562"
-    f"?dateIn={CHECKIN}&nights=4&compositions=2&stayplus=false&snu=false&hideHotelDetails=true"
+    "https://all.accor.com/booking/en/accor/hotel/8562"
+    f"?dateIn={CHECKIN}&dateOut={CHECKOUT}&nights=4&compositions=2"
+    "&stayplus=false&snu=false&accessibleRooms=false&hideWDR=false"
+    "&hideHotelDetails=false"
 )
 
 
@@ -56,33 +60,88 @@ def parse_inr(text):
     return values
 
 
+def normalized(s):
+    return re.sub(r"\s+", " ", s.replace("–", "-").replace("—", "-").lower()).strip()
+
+
 def fetch_live_rate():
-    """Read the official Accor booking page and fail closed if the exact
-    target room/rate cannot be identified. This prevents false alerts."""
+    """Read the official Accor booking page and fail closed unless the exact
+    target room and Half Board Flexible Rate can be identified."""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(locale="en-IN", timezone_id="Asia/Kolkata")
+        context = browser.new_context(locale="en-IN", timezone_id="Asia/Kolkata")
+        page = context.new_page()
         try:
             page.goto(BOOKING_URL, wait_until="domcontentloaded", timeout=90000)
-            page.wait_for_timeout(12000)
+            # The Accor booking engine hydrates asynchronously. Give it time,
+            # then scroll so lazy-loaded room cards are rendered.
+            page.wait_for_timeout(15000)
+            for _ in range(6):
+                page.mouse.wheel(0, 1800)
+                page.wait_for_timeout(1200)
+
             text = page.locator("body").inner_text(timeout=30000)
-            lower = text.lower()
-            room_pos = lower.find("standard twin room with pool view")
+            ntext = normalized(text)
+
+            room_variants = [
+                "standard twin room with pool view",
+                "standard twin room - pool view",
+                "standard twin room, pool view",
+                "standard twin room",
+            ]
+            room_pos = -1
+            matched_room = None
+            for variant in room_variants:
+                pos = ntext.find(variant)
+                if pos >= 0:
+                    room_pos = pos
+                    matched_room = variant
+                    break
+
             if room_pos < 0:
-                room_pos = lower.find("standard twin room")
+                # As a final fallback, inspect rendered room-like elements;
+                # Accor sometimes changes punctuation/labels between locales.
+                candidates = page.locator("text=/Standard Twin Room/i")
+                if candidates.count() > 0:
+                    for i in range(min(candidates.count(), 10)):
+                        try:
+                            value = candidates.nth(i).inner_text().strip()
+                            if "twin" in value.lower():
+                                room_pos = ntext.find(normalized(value))
+                                matched_room = normalized(value)
+                                break
+                        except Exception:
+                            pass
+
             if room_pos < 0:
                 return None, "target room not found"
-            window = text[max(0, room_pos - 1000): room_pos + 7000]
-            wl = window.lower()
-            if "half board" not in wl:
+
+            window = ntext[max(0, room_pos - 1500): room_pos + 9000]
+            if "half board" not in window:
                 return None, "half-board rate not found near target room"
-            if "flexible rate" not in wl:
+            if "flexible rate" not in window:
                 return None, "flexible rate not found near target room"
+
             amounts = [x for x in parse_inr(window) if 1000 <= x <= 200000]
             if not amounts:
                 return None, "no plausible INR total found"
+
+            # Prefer a displayed stay total if the page exposes one. Otherwise
+            # use the largest plausible amount in the exact room/rate window.
+            total_patterns = [
+                r"total[^₹0-9]{0,80}(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)",
+                r"(?:₹|inr)\s*([0-9][0-9,]*(?:\.\d{1,2})?)[^\n]{0,50}total",
+            ]
+            for pattern in total_patterns:
+                matches = re.findall(pattern, window, re.I)
+                for raw in reversed(matches):
+                    value = float(raw.replace(",", ""))
+                    if 1000 <= value <= 200000:
+                        return value, "ok"
+
             return max(amounts), "ok"
         finally:
+            context.close()
             browser.close()
 
 
