@@ -42,9 +42,10 @@ def current_message(total, change):
         change_line = "Change: = ₹0.00"
     return (
         "🏨 IBIS GOA CURRENT PRICE\n\n"
+        f"💰 FINAL PAYABLE PRICE: ₹{total:,.2f}\n\n"
         f"{HOTEL}\nStay: {CHECKIN} → {CHECKOUT}\nGuests: {GUESTS}\n"
         f"Room: {ROOM_LABEL}\nRate: {RATE_LABEL}\n\n"
-        f"💰 Current price: ₹{total:,.2f}\n{change_line}\n"
+        f"{change_line}\n"
         f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\nSource: ALL Accor official booking page"
     )
 
@@ -86,11 +87,11 @@ def main():
     if change < 0:
         alert = (
             "🚨 IBIS GOA PRICE DROP 🚨\n\n"
-            f"{HOTEL}\nStay: {CHECKIN} → {CHECKOUT}\nGuests: {GUESTS}\n"
-            f"Room: {ROOM_LABEL}\nRate: {RATE_LABEL}\n\n"
-            f"💰 NEW PRICE: ₹{total:,.2f}\n"
+            f"💰 FINAL PAYABLE PRICE: ₹{total:,.2f}\n"
             f"📉 PRICE DROPPED BY: ₹{abs(change):,.2f}\n"
-            f"Previous: ₹{previous:,.2f}\n\nSource: ALL Accor official booking page"
+            f"Previous: ₹{previous:,.2f}\n\n"
+            f"{HOTEL}\nStay: {CHECKIN} → {CHECKOUT}\nGuests: {GUESTS}\n"
+            f"Room: {ROOM_LABEL}\nRate: {RATE_LABEL}\n\nSource: ALL Accor official booking page"
         )
         for _ in range(5):
             send_telegram(alert)
