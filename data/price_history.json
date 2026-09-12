@@ -720,5 +720,13 @@
     "currency": "INR",
     "regular_slot": null,
     "regular_sent": false
+  },
+  {
+    "checked_at": "2026-09-12T03:34:45.975140+00:00",
+    "status": "ok",
+    "total": 37441.75,
+    "currency": "INR",
+    "regular_slot": "2026-09-12-0900",
+    "regular_sent": true
   }
 ]
