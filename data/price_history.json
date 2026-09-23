@@ -1,13 +1,5 @@
 [
   {
-    "checked_at": "2026-09-14T09:05:09.239426+00:00",
-    "status": "ok",
-    "total": 37531.11,
-    "currency": "INR",
-    "regular_slot": null,
-    "regular_sent": false
-  },
-  {
     "checked_at": "2026-09-14T09:27:00.852415+00:00",
     "status": "ok",
     "total": 37531.11,
@@ -770,5 +762,13 @@
   {
     "checked_at": "2026-09-23T14:41:06.443011+00:00",
     "status": "target room/rate not found"
+  },
+  {
+    "checked_at": "2026-09-23T14:56:46.473533+00:00",
+    "status": "ok",
+    "total": 38072.51,
+    "currency": "INR",
+    "regular_slot": null,
+    "regular_sent": false
   }
 ]
