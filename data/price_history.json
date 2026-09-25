@@ -1,13 +1,5 @@
 [
   {
-    "checked_at": "2026-09-24T07:21:21.505558+00:00",
-    "status": "ok",
-    "total": 38072.51,
-    "currency": "INR",
-    "regular_slot": null,
-    "regular_sent": false
-  },
-  {
     "checked_at": "2026-09-24T07:52:43.440478+00:00",
     "status": "ok",
     "total": 38072.51,
@@ -793,6 +785,14 @@
   },
   {
     "checked_at": "2026-09-25T13:25:44.912027+00:00",
+    "status": "ok",
+    "total": 37201.01,
+    "currency": "INR",
+    "regular_slot": null,
+    "regular_sent": false
+  },
+  {
+    "checked_at": "2026-09-25T13:43:45.547780+00:00",
     "status": "ok",
     "total": 37201.01,
     "currency": "INR",
