@@ -83,17 +83,20 @@ def main():
     history.append(record)
     HISTORY_FILE.write_text(json.dumps(history[-100:], indent=2), encoding="utf-8")
 
-    # A verified price drop triggers five Telegram messages back-to-back immediately.
-    if change < 0:
+    # Send a 20-message alert only when the price crosses below ₹35,000.
+    # Do not repeat the alert on every 5-minute check while the price remains below the threshold.
+    PRICE_ALERT_THRESHOLD = 35000
+    crossed_below_threshold = previous >= PRICE_ALERT_THRESHOLD and total < PRICE_ALERT_THRESHOLD
+    if crossed_below_threshold:
         alert = (
-            "🚨 IBIS GOA PRICE DROP 🚨\n\n"
+            "🚨 IBIS GOA PRICE ALERT 🚨\n\n"
             f"💰 FINAL PAYABLE PRICE: ₹{total:,.2f}\n"
-            f"📉 PRICE DROPPED BY: ₹{abs(change):,.2f}\n"
+            f"📉 PRICE CROSSED BELOW: ₹{PRICE_ALERT_THRESHOLD:,.2f}\n"
             f"Previous: ₹{previous:,.2f}\n\n"
             f"{HOTEL}\nStay: {CHECKIN} → {CHECKOUT}\nGuests: {GUESTS}\n"
             f"Room: {ROOM_LABEL}\nRate: {RATE_LABEL}\n\nSource: ALL Accor official booking page"
         )
-        for _ in range(5):
+        for _ in range(20):
             send_telegram(alert)
 
     # One regular current-price message in each daily slot.
