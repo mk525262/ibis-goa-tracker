@@ -110,8 +110,9 @@ def extract_target_from_text(text):
 
 def exact_offer_from_json(payload):
     """
-    JSON fallback only. Prefer the rendered INR booking-page total because
-    the API can expose intermediate room/rate amounts that exclude taxes.
+    Extract the exact Standard Twin + Flexible Rate + Half Board member price
+    from Accor's INR payload. Accor exposes the member room amount separately
+    from taxes, so return room amount + the displayed tax amount.
     """
     matches = []
 
@@ -119,30 +120,28 @@ def exact_offer_from_json(payload):
         if isinstance(node, dict):
             rate = node.get("rate")
             meal = node.get("mealPlan")
+            product = node.get("product")
             rl = norm(rate.get("label")) if isinstance(rate, dict) else ""
             mc = norm(meal.get("code")) if isinstance(meal, dict) else ""
             ml = norm(meal.get("label")) if isinstance(meal, dict) else ""
-            if "flexible rate" in rl and (mc == "half_board" or "half board" in ml):
+            product_id = product.get("id") if isinstance(product, dict) else ""
+
+            if (
+                "flexible rate" in rl
+                and (mc == "half_board" or "half board" in ml)
+                and product_id == "TWC"
+            ):
                 pricing = node.get("pricing") or {}
                 currency = norm(pricing.get("currency"))
-                candidates = []
-                def collect_numbers(obj):
-                    if isinstance(obj, dict):
-                        for k, v in obj.items():
-                            lk = norm(k)
-                            if isinstance(v, (int, float)) and any(x in lk for x in ("total", "grand", "payable", "amount", "price")):
-                                candidates.append(float(v))
-                            else:
-                                collect_numbers(v)
-                    elif isinstance(obj, list):
-                        for v in obj:
-                            collect_numbers(v)
-                collect_numbers(node)
-                if path.endswith("[3]") or path.endswith("[7]") or path.endswith("[11]") or path.endswith("[15]"):
-                    print(f"DEBUG_NODE {json.dumps(node, ensure_ascii=False)[:9000]}")
-                print(f"DEBUG_RATE currency={currency} candidates={candidates[:30]} path={path}")
-                if currency == "inr":
-                    matches.extend((v, "nested", path) for v in candidates if 1000 <= v <= 200000)
+                main = pricing.get("main") or {}
+                amount = main.get("amount")
+
+                if currency == "inr" and isinstance(amount, (int, float)):
+                    tax_text = str(pricing.get("formattedTaxType") or "")
+                    tax_values = parse_money(tax_text)
+                    tax = tax_values[0] if tax_values else 0.0
+                    matches.append((float(amount) + tax, path))
+
             for k, v in node.items():
                 walk(v, f"{path}.{k}" if path else str(k))
         elif isinstance(node, list):
@@ -153,12 +152,8 @@ def exact_offer_from_json(payload):
     if not matches:
         return None, "target room/rate not found"
 
-    # JSON fallback is only used when no rendered final total is available.
-    # Do not convert foreign currencies here: the booking URL explicitly asks
-    # Accor for INR, and conversion can produce a different commercial amount.
-    matches.sort(key=lambda x: x[0], reverse=True)
+    matches.sort(key=lambda x: x[0])
     return matches[0][0], "ok"
-
 
 def fetch_live_rate():
     captured_json = []
