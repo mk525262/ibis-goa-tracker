@@ -8,12 +8,17 @@ on:
       - "goa_scheduler.py"
       - ".github/workflows/goa-tracker.yml"
   schedule:
-    # Check every 5 minutes for fast price-drop detection.
+    # Check every 5 minutes for price changes.
+    # The scheduler itself sends the six daily updates at its configured IST slots.
     - cron: "*/5 * * * *"
       timezone: "Asia/Kolkata"
 
 permissions:
   contents: write
+
+concurrency:
+  group: goa-price-tracker
+  cancel-in-progress: false
 
 jobs:
   check-price:
