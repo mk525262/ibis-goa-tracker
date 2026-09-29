@@ -138,6 +138,8 @@ def exact_offer_from_json(payload):
                         for v in obj:
                             collect_numbers(v)
                 collect_numbers(node)
+                if path.endswith("[3]") or path.endswith("[7]") or path.endswith("[11]") or path.endswith("[15]"):
+                    print(f"DEBUG_NODE {json.dumps(node, ensure_ascii=False)[:9000]}")
                 print(f"DEBUG_RATE currency={currency} candidates={candidates[:30]} path={path}")
                 if currency == "inr":
                     matches.extend((v, "nested", path) for v in candidates if 1000 <= v <= 200000)
