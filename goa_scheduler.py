@@ -93,7 +93,7 @@ def current_message(total, change, scheduled_for):
         f"💰 FINAL PAYABLE PRICE: ₹{total:,.2f}\n\n"
         f"{HOTEL}\nStay: {CHECKIN} → {CHECKOUT}\nGuests: {GUESTS}\n"
         f"Room: {ROOM_LABEL}\nRate: {RATE_LABEL}\n\n"
-        f"Change: {change_line}\n"
+        f"{change_line}\n"
         f"Daily update: {scheduled_for}\n"
         f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\n"
         "Source: ALL Accor official booking page"
