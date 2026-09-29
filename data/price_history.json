@@ -846,5 +846,13 @@
     "regular_slot": "2026-09-29-1615",
     "regular_sent": true,
     "sent_at": "2026-09-29T12:38:49.209656+00:00"
+  },
+  {
+    "checked_at": "2026-09-29T12:57:31.385289+00:00",
+    "status": "ok",
+    "total": 40698.0,
+    "currency": "INR",
+    "change_alert_sent": false,
+    "threshold_alert_sent": false
   }
 ]
