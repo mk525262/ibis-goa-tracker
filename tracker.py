@@ -138,6 +138,7 @@ def exact_offer_from_json(payload):
                         for v in obj:
                             collect_numbers(v)
                 collect_numbers(node)
+                print(f"DEBUG_RATE currency={currency} candidates={candidates[:30]} path={path}")
                 if currency == "inr":
                     matches.extend((v, "nested", path) for v in candidates if 1000 <= v <= 200000)
             for k, v in node.items():
