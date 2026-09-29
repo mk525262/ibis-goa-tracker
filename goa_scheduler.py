@@ -1,4 +1,6 @@
 import json
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -21,7 +23,7 @@ from tracker import (
 
 IST = ZoneInfo("Asia/Kolkata")
 
-# Six daily price updates, spread across 9 AM to 9 PM IST.
+# Six daily updates between 9 AM and 9 PM IST.
 REGULAR_TIMES = [
     (9, 0),
     (11, 25),
@@ -35,8 +37,6 @@ PRICE_ALERT_THRESHOLD = 35000
 
 
 def send_telegram(text):
-    import os
-
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = telegram_chat_id(token)
     r = requests.post(
@@ -51,23 +51,36 @@ def send_repeated(text, count):
     for i in range(count):
         send_telegram(text)
         if i < count - 1:
-            # Small pause keeps the messages back-to-back without hammering
-            # Telegram's API as one instantaneous burst.
-            import time
-
             time.sleep(0.8)
 
 
-def regular_slot_key(now):
-    now_minutes = now.hour * 60 + now.minute
+def slot_key(date, hour, minute):
+    return f"{date.isoformat()}-{hour:02d}{minute:02d}"
+
+
+def due_regular_slots(now_ist, history):
+    """
+    Return every daily slot that is already due today and has not been sent.
+    This intentionally does NOT use a 10-minute window: GitHub scheduled
+    workflows can be delayed, so a missed slot must be caught up on the next run.
+    """
+    sent = {
+        x.get("regular_slot")
+        for x in history
+        if isinstance(x, dict) and x.get("regular_sent") and x.get("regular_slot")
+    }
+
+    due = []
     for hour, minute in REGULAR_TIMES:
-        slot_minutes = hour * 60 + minute
-        if slot_minutes <= now_minutes < slot_minutes + 10:
-            return f"{now.date().isoformat()}-{hour:02d}{minute:02d}"
-    return None
+        key = slot_key(now_ist.date(), hour, minute)
+        slot_time = now_ist.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if now_ist >= slot_time and key not in sent:
+            due.append((key, hour, minute))
+
+    return due
 
 
-def current_message(total, change):
+def current_message(total, change, scheduled_for):
     if change < 0:
         change_line = f"Change: ↓ ₹{abs(change):,.2f}"
     elif change > 0:
@@ -80,7 +93,8 @@ def current_message(total, change):
         f"💰 FINAL PAYABLE PRICE: ₹{total:,.2f}\n\n"
         f"{HOTEL}\nStay: {CHECKIN} → {CHECKOUT}\nGuests: {GUESTS}\n"
         f"Room: {ROOM_LABEL}\nRate: {RATE_LABEL}\n\n"
-        f"{change_line}\n"
+        f"Change: {change_line}\n"
+        f"Daily update: {scheduled_for}\n"
         f"Baseline: ₹{BASELINE_TOTAL:,.2f}\n\n"
         "Source: ALL Accor official booking page"
     )
@@ -133,7 +147,7 @@ def main():
     if total is None:
         history.append({"checked_at": checked, "status": status})
         HISTORY_FILE.write_text(
-            json.dumps(history[-100:], indent=2), encoding="utf-8"
+            json.dumps(history[-200:], indent=2), encoding="utf-8"
         )
         return
 
@@ -144,15 +158,12 @@ def main():
     ]
     previous = prices[-1] if prices else BASELINE_TOTAL
     change = total - previous
-    slot = regular_slot_key(now_ist)
 
     record = {
         "checked_at": checked,
         "status": "ok",
         "total": total,
         "currency": CURRENCY,
-        "regular_slot": slot,
-        "regular_sent": False,
         "change_alert_sent": False,
         "threshold_alert_sent": False,
     }
@@ -174,20 +185,24 @@ def main():
             send_repeated(price_change_message(total, previous, change), 5)
             record["change_alert_sent"] = True
 
-    # One regular current-price message in each of the six daily slots.
-    if slot:
-        already_sent = any(
-            isinstance(x, dict)
-            and x.get("regular_slot") == slot
-            and x.get("regular_sent")
-            for x in history[:-1]
-        )
-        if not already_sent:
-            send_telegram(current_message(total, change))
-            record["regular_sent"] = True
+    # Send every daily slot that is due but has not yet been sent.
+    # This makes the six-message schedule resilient to delayed/missed
+    # GitHub Actions runs.
+    due_slots = due_regular_slots(now_ist, history)
+    for key, hour, minute in due_slots:
+        scheduled_for = f"{hour:02d}:{minute:02d} IST"
+        send_telegram(current_message(total, change, scheduled_for))
+        record_for_slot = {
+            "checked_at": checked,
+            "notification": "daily",
+            "regular_slot": key,
+            "regular_sent": True,
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+        }
+        history.append(record_for_slot)
 
     HISTORY_FILE.write_text(
-        json.dumps(history[-100:], indent=2), encoding="utf-8"
+        json.dumps(history[-200:], indent=2), encoding="utf-8"
     )
 
 
