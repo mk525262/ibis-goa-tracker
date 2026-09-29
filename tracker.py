@@ -22,7 +22,7 @@ BOOKING_URL = (
     "https://all.accor.com/booking/en/accor/hotel/8562"
     f"?dateIn={CHECKIN}&dateOut={CHECKOUT}&nights=5&compositions=2"
     "&stayplus=false&snu=false&accessibleRooms=false&hideWDR=false"
-    "&hideHotelDetails=false&currency=INR"
+    "&hideHotelDetails=false&currency=INR&countryMarket=IN"
 )
 
 
