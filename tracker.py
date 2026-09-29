@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 HOTEL = "ibis Styles Goa Calangute"
 CHECKIN = "2026-11-28"
-CHECKOUT = "2026-12-02"
+CHECKOUT = "2026-12-03"
 GUESTS = 2
 BASELINE_TOTAL = 37605.75
 CURRENCY = "INR"
@@ -22,7 +22,7 @@ BASELINE_EUR = 357.72
 BASELINE_EUR_TO_INR = BASELINE_TOTAL / BASELINE_EUR
 BOOKING_URL = (
     "https://all.accor.com/booking/en/accor/hotel/8562"
-    f"?dateIn={CHECKIN}&dateOut={CHECKOUT}&nights=4&compositions=2"
+    f"?dateIn={CHECKIN}&dateOut={CHECKOUT}&nights=5&compositions=2"
     "&stayplus=false&snu=false&accessibleRooms=false&hideWDR=false"
     "&hideHotelDetails=false&currency=INR"
 )
