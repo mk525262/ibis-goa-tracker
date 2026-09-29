@@ -16,10 +16,6 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: goa-price-tracker
-  cancel-in-progress: false
-
 jobs:
   check-price:
     runs-on: ubuntu-latest
