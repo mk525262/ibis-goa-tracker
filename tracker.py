@@ -123,6 +123,10 @@ def exact_offer_from_json(payload):
             mc = norm(meal.get("code")) if isinstance(meal, dict) else ""
             ml = norm(meal.get("label")) if isinstance(meal, dict) else ""
             if "flexible rate" in rl and (mc == "half_board" or "half board" in ml):
+                blob = norm(json.dumps(node, ensure_ascii=False))
+                if "standard twin room" not in blob or "pool view" not in blob:
+                    for k, v in node.items(): walk(v, f"{path}.{k}" if path else str(k))
+                    return
                 pricing = node.get("pricing") or {}
                 currency = norm(pricing.get("currency"))
                 main = pricing.get("main") or {}
@@ -131,6 +135,7 @@ def exact_offer_from_json(payload):
                     if isinstance(obj, dict) and isinstance(obj.get("amount"), (int, float)):
                         amount = float(obj["amount"])
                         if currency == "inr":
+                            print(f"DEBUG_MATCH amount={amount} kind={kind} path={path} pricing={json.dumps(pricing, ensure_ascii=False)[:1200]}")
                             matches.append((amount, kind, path))
             for k, v in node.items():
                 walk(v, f"{path}.{k}" if path else str(k))
