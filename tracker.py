@@ -177,7 +177,12 @@ def fetch_live_rate():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(locale="en-IN", timezone_id="Asia/Kolkata")
+        context = browser.new_context(locale="en-IN", timezone_id="Asia/Kolkata", extra_http_headers={"Accept-Language": "en-IN,en;q=0.9"})
+        context.add_cookies([
+            {"name": "userCurrency", "value": "INR", "domain": "all.accor.com", "path": "/"},
+            {"name": "userLocalization", "value": "IN", "domain": "all.accor.com", "path": "/"},
+            {"name": "userLang", "value": "en", "domain": "all.accor.com", "path": "/"},
+        ])
         page = context.new_page()
         page.on("response", capture_response)
         try:
