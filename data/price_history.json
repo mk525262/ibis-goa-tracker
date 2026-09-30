@@ -1496,5 +1496,9 @@
     "currency": "INR",
     "change_alert_sent": false,
     "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-09-30T15:53:49.036593+00:00",
+    "status": "target room/rate not found"
   }
 ]
