@@ -17,6 +17,7 @@ CURRENCY = "INR"
 ROOM_LABEL = "Standard Twin Room – Pool View"
 RATE_LABEL = "Flexible Rate – Half Board"
 HISTORY_FILE = Path("data/price_history.json")
+CHAT_ID_CACHE_FILE = Path(".telegram_chat_id")
 DAILY_UPDATE_HOURS = {9, 11, 13, 15, 18, 21}
 BOOKING_URL = (
     "https://all.accor.com/booking/en/accor/hotel/8562"
@@ -27,16 +28,33 @@ BOOKING_URL = (
 
 
 def telegram_chat_id(token):
+    # Preferred: explicit GitHub secret.
     configured = os.getenv("TELEGRAM_CHAT_ID")
     if configured:
-        return configured
+        return configured.strip()
+
+    # Permanent fallback: remember the chat ID once Telegram getUpdates
+    # discovers it. The workflow caches this file between runs, so /start
+    # is only needed once rather than on every run.
+    try:
+        cached = CHAT_ID_CACHE_FILE.read_text(encoding="utf-8").strip()
+        if cached:
+            return cached
+    except Exception:
+        pass
+
     r = requests.get(f"https://api.telegram.org/bot{token}/getUpdates", timeout=30)
     r.raise_for_status()
     for update in reversed(r.json().get("result", [])):
         message = update.get("message") or update.get("channel_post")
         if message and message.get("chat", {}).get("id") is not None:
-            return str(message["chat"]["id"])
-    raise RuntimeError("No Telegram chat found. Open @Goa_IBIS_bot and send /start first.")
+            chat_id = str(message["chat"]["id"])
+            try:
+                CHAT_ID_CACHE_FILE.write_text(chat_id + "\\n", encoding="utf-8")
+            except Exception:
+                pass
+            return chat_id
+    raise RuntimeError("No Telegram chat found. Open @Goa_IBIS_bot and send /start once.")
 
 
 def send_telegram(text):
