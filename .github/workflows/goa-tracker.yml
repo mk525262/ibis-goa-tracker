@@ -39,6 +39,12 @@ jobs:
       - name: Install Chromium
         run: python -m playwright install --with-deps chromium
 
+      - name: Restore Telegram chat ID cache
+        uses: actions/cache@v4
+        with:
+          path: .telegram_chat_id
+          key: telegram-chat-id-v1
+
       - name: Test Telegram on manual run
         if: github.event_name == 'workflow_dispatch'
         run: python telegram_test.py
