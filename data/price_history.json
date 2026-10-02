@@ -1,13 +1,5 @@
 [
   {
-    "checked_at": "2026-09-30T02:21:52.886085+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
     "checked_at": "2026-09-30T02:40:09.158327+00:00",
     "status": "ok",
     "total": 40698.0,
@@ -1565,6 +1557,14 @@
   },
   {
     "checked_at": "2026-10-02T20:36:34.808576+00:00",
+    "status": "ok",
+    "total": 40698.0,
+    "currency": "INR",
+    "change_alert_sent": false,
+    "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-10-02T20:54:14.352484+00:00",
     "status": "ok",
     "total": 40698.0,
     "currency": "INR",
