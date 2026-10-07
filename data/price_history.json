@@ -1,13 +1,5 @@
 [
   {
-    "checked_at": "2026-10-01T16:11:29.804168+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
     "checked_at": "2026-10-01T16:49:40.892411+00:00",
     "status": "ok",
     "total": 40698.0,
@@ -1568,5 +1560,9 @@
     "currency": "INR",
     "change_alert_sent": true,
     "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-10-07T05:47:36.149985+00:00",
+    "status": "target room/rate not found"
   }
 ]
