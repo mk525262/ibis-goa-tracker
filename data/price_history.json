@@ -1,32 +1,5 @@
 [
   {
-    "checked_at": "2026-10-02T10:53:29.725931+00:00",
-    "notification": "daily",
-    "regular_slot": "2026-10-02-1615",
-    "regular_sent": true,
-    "sent_at": "2026-10-02T10:54:03.788983+00:00"
-  },
-  {
-    "checked_at": "2026-10-02T11:09:55.411176+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-02T11:29:35.484193+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-02T11:48:31.157243+00:00",
-    "status": "target room/rate not found"
-  },
-  {
     "checked_at": "2026-10-02T12:01:42.518777+00:00",
     "status": "ok",
     "total": 40698.0,
@@ -1532,5 +1505,34 @@
     "regular_slot": "2026-10-13-1350",
     "regular_sent": true,
     "sent_at": "2026-10-13T09:45:41.677708+00:00"
+  },
+  {
+    "checked_at": "2026-10-13T17:10:36.458776+00:00",
+    "status": "ok",
+    "total": 40698.0,
+    "currency": "INR",
+    "change_alert_sent": false,
+    "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-10-13T17:10:36.458776+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-13-1615",
+    "regular_sent": true,
+    "sent_at": "2026-10-13T17:11:13.129918+00:00"
+  },
+  {
+    "checked_at": "2026-10-13T17:10:36.458776+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-13-1840",
+    "regular_sent": true,
+    "sent_at": "2026-10-13T17:11:13.716654+00:00"
+  },
+  {
+    "checked_at": "2026-10-13T17:10:36.458776+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-13-2100",
+    "regular_sent": true,
+    "sent_at": "2026-10-13T17:11:14.256234+00:00"
   }
 ]
