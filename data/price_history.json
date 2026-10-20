@@ -1,28 +1,5 @@
 [
   {
-    "checked_at": "2026-10-04T02:17:17.325858+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-04T04:13:10.248144+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-04T04:13:10.248144+00:00",
-    "notification": "daily",
-    "regular_slot": "2026-10-04-0900",
-    "regular_sent": true,
-    "sent_at": "2026-10-04T04:13:44.702662+00:00"
-  },
-  {
     "checked_at": "2026-10-04T06:51:09.720744+00:00",
     "status": "ok",
     "total": 40698.0,
@@ -1504,5 +1481,27 @@
     "regular_slot": "2026-10-20-1350",
     "regular_sent": true,
     "sent_at": "2026-10-20T10:05:20.771373+00:00"
+  },
+  {
+    "checked_at": "2026-10-20T15:00:54.526809+00:00",
+    "status": "ok",
+    "total": 40698.0,
+    "currency": "INR",
+    "change_alert_sent": false,
+    "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-10-20T15:00:54.526809+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-20-1615",
+    "regular_sent": true,
+    "sent_at": "2026-10-20T15:01:28.539966+00:00"
+  },
+  {
+    "checked_at": "2026-10-20T15:00:54.526809+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-20-1840",
+    "regular_sent": true,
+    "sent_at": "2026-10-20T15:01:29.223206+00:00"
   }
 ]
