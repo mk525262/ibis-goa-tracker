@@ -1,12 +1,5 @@
 [
   {
-    "checked_at": "2026-10-08T17:05:28.823702+00:00",
-    "notification": "daily",
-    "regular_slot": "2026-10-08-2100",
-    "regular_sent": true,
-    "sent_at": "2026-10-08T17:06:03.853225+00:00"
-  },
-  {
     "checked_at": "2026-10-08T22:02:51.352684+00:00",
     "status": "ok",
     "total": 40997.25,
@@ -1500,5 +1493,9 @@
     "regular_slot": "2026-10-26-0900",
     "regular_sent": true,
     "sent_at": "2026-10-26T05:15:07.881579+00:00"
+  },
+  {
+    "checked_at": "2026-10-26T11:25:32.477324+00:00",
+    "status": "target room/rate not found"
   }
 ]
