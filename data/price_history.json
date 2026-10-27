@@ -1,43 +1,5 @@
 [
   {
-    "checked_at": "2026-10-09T16:05:10.069528+00:00",
-    "notification": "daily",
-    "regular_slot": "2026-10-09-2100",
-    "regular_sent": true,
-    "sent_at": "2026-10-09T16:05:47.340127+00:00"
-  },
-  {
-    "checked_at": "2026-10-09T20:51:08.408383+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-10T00:23:54.508915+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-10T06:12:43.480160+00:00",
-    "status": "ok",
-    "total": 40698.0,
-    "currency": "INR",
-    "change_alert_sent": false,
-    "threshold_alert_sent": false
-  },
-  {
-    "checked_at": "2026-10-10T06:12:43.480160+00:00",
-    "notification": "daily",
-    "regular_slot": "2026-10-10-0900",
-    "regular_sent": true,
-    "sent_at": "2026-10-10T06:13:18.521489+00:00"
-  },
-  {
     "checked_at": "2026-10-10T06:12:43.480160+00:00",
     "notification": "daily",
     "regular_slot": "2026-10-10-1125",
@@ -1493,5 +1455,41 @@
   {
     "checked_at": "2026-10-27T06:06:44.315635+00:00",
     "status": "target room/rate not found"
+  },
+  {
+    "checked_at": "2026-10-27T12:15:02.747040+00:00",
+    "status": "ok",
+    "total": 39700.5,
+    "currency": "INR",
+    "change_alert_sent": false,
+    "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-10-27T12:15:02.747040+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-27-0900",
+    "regular_sent": true,
+    "sent_at": "2026-10-27T12:15:37.132890+00:00"
+  },
+  {
+    "checked_at": "2026-10-27T12:15:02.747040+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-27-1125",
+    "regular_sent": true,
+    "sent_at": "2026-10-27T12:15:37.755360+00:00"
+  },
+  {
+    "checked_at": "2026-10-27T12:15:02.747040+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-27-1350",
+    "regular_sent": true,
+    "sent_at": "2026-10-27T12:15:38.376606+00:00"
+  },
+  {
+    "checked_at": "2026-10-27T12:15:02.747040+00:00",
+    "notification": "daily",
+    "regular_slot": "2026-10-27-1615",
+    "regular_sent": true,
+    "sent_at": "2026-10-27T12:15:38.983949+00:00"
   }
 ]
