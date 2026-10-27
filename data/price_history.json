@@ -2,13 +2,6 @@
   {
     "checked_at": "2026-10-09T16:05:10.069528+00:00",
     "notification": "daily",
-    "regular_slot": "2026-10-09-1840",
-    "regular_sent": true,
-    "sent_at": "2026-10-09T16:05:46.793674+00:00"
-  },
-  {
-    "checked_at": "2026-10-09T16:05:10.069528+00:00",
-    "notification": "daily",
     "regular_slot": "2026-10-09-2100",
     "regular_sent": true,
     "sent_at": "2026-10-09T16:05:47.340127+00:00"
@@ -1496,5 +1489,9 @@
     "currency": "INR",
     "change_alert_sent": false,
     "threshold_alert_sent": false
+  },
+  {
+    "checked_at": "2026-10-27T06:06:44.315635+00:00",
+    "status": "target room/rate not found"
   }
 ]
